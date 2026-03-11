@@ -1,0 +1,26 @@
+h1{
+    text-align: center;
+    color: #9f9f9f;
+    font-size: 50px;
+}
+
+.box{
+    width: 500px;
+    height: 500px;
+    position: relative;
+    background-color: bisque;
+    margin: auto;
+    top: 10%;
+    bottom: 10%;
+    text-align: center;
+}   
+p1 {
+    color: aqua;
+}
+button{
+    color: azure;
+    text-align: center;
+}
+button:active{
+    color: aqua;
+}
