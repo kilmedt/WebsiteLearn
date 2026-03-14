@@ -1,4 +1,6 @@
-* {
+*,
+*::before,
+*::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -12,7 +14,7 @@ html::before{
     width: 100%;
     height: 100%;
     position: fixed;
-    background-color: #e8eadc;
+    background:linear-gradient(120deg,#cef5ff 0%,#ffe0d3 100%) ;
     z-index: -1;
 }
 
@@ -66,6 +68,10 @@ html::before{
     background-color: rgba(255, 255, 255, 30%);
     box-shadow:0 0 1rem 0.2rem rgb(0 0 0 /10%);
 }
+.card:link{
+    color: black;
+    text-decoration: none;
+}
 
 .container .box .card:hover{
     background-color: rgba(255, 255, 255, 50%);
@@ -73,20 +79,24 @@ html::before{
     transition: all 0.3s ease;
 }
 
-.container .box .card .article_pic{
-    display: flex;
+.container .box .card .pic{
     position: relative;
     width: 100%;
     height: 61%;
-    background-image: url(../img/back.jpg);
     background-size: cover;
     background-position:top;
     background-repeat: no-repeat;
     border-top-left-radius: 1.5rem;
     border-top-right-radius: 1.5rem;
 }
+.pic#article{
+    background-image: url(../img/back.jpg);
+}
+.pic#project{
+    background-image: url(../img/0.jpg);
+}
 
-.container .box .card .article_text{
+.container .box .card .text{
     display: flex;
     position: relative;
     width: 100%;
@@ -105,7 +115,7 @@ html::before{
     border-top-right-radius: 1.5rem;
     border-bottom-right-radius: 1.5rem;
     box-shadow:0 0 1rem 0.2rem rgb(0 0 0 /10%);
-    background-color: #71838f;
+    background-color: rgba(255, 255, 255, 30%); ;
     margin: auto;
     padding: auto;
     margin-left: 0px;
@@ -159,15 +169,15 @@ html::before{
     font-size: 25px;
     margin-top: 10px;
     margin-bottom: 10px;
-    color: antiquewhite;
-    text-shadow: 2px 2px 5px rgba(0,0,0,0.4);
+    color: #0087a8;
+    text-shadow: 0 3px 5px rgba(0, 127, 211, 0.4);
 }
 .container .left .intro p1{
     position: relative;
     margin-top: 5px;
     font-size: 15px;
-    color: antiquewhite;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+    color: #7c2601;
+    text-shadow: 0px 3px 3px rgba(255, 127, 23, 0.5);
 }
 
 
@@ -178,7 +188,7 @@ html::before{
     height: 10%;
     font-size: 12px;
     flex-direction: row;
-    border-top: 1px solid rgba(255, 255, 255, 30%);
+    border-top: 2px solid rgba(229, 229, 229, 0.7)
 }
 
 
@@ -215,12 +225,15 @@ html::before{
     justify-content: center;
     align-items: center;
     border-radius: 50%;
-    background:linear-gradient(150deg, #cfcfcf 0%, #cacaca 100%) ;
+    background:linear-gradient(120deg, #cef5ff 0%, #ffe0d3) ;
+    box-shadow:0 0 5px 1px #d0d0d0;
 }
 
 .container .left .about .about_nav a:hover{
-    background:linear-gradient( #d3d3d3 0%, #b1b1b1 100%) ;
-    transition: all 1s ease;
+    width: 42px;
+    height: 42px;
+    background:linear-gradient(120deg, #daf8ff 0%, #ffeae1 100%) ;
+
 }
 
 
