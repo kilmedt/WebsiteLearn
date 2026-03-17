@@ -1,3 +1,8 @@
+:root{
+    --sidebar-width: 250px;
+    --header-height: 64px;
+}
+
 *,
 *::before,
 *::after {
@@ -18,46 +23,64 @@ html::before{
     z-index: -1;
 }
 
-.container{
-    display: flex;
-    width: 100%;
-    height: 100%;
-    margin: 0px;
-    padding: 0;
+
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    height: 100vh;
+    display: grid;
+    grid-auto-rows: var(--header-height) 1fr auto;
+    grid-template-areas: 
+        "header"
+        "body"
+        "footer";
 }
+.app-header{
+    grid-area: header;
+}
+.app-body{
+    grid-area: body;
+}
+.app-footer{
+    grid-area: footer;
+}
+
 /* 顶部栏 */
-.container .bar{
-    display: flex;
-    position:absolute;
+.app-header{
+    display:flex;
     width: 100%;
-    height: 9%;
-    padding-bottom: 10px;
-    margin-top: 0px;
-    margin-bottom: 10px;
+    height: 7rem;
+    padding: 0 2rem;
     background-color: rgba(255, 255, 255, 90%);
     border-bottom-left-radius: 1.5rem;
     border-bottom-right-radius: 1.5rem;
     box-shadow: 0 0 1rem 0.2rem rgb(0 0 0 /10%);
+    align-items: center;
+    justify-content: space-between;
 }
 /* 右侧主要内容 */
-.container .box{
-    flex: auto;
+.app-body{
+    display: flex;
+    max-width: 1600px;
+    width: 100%;
+    margin: 20 auto;
+    min-height: 0;
+    gap: 2rem;
+}
+.main-content{
+    flex-grow: 1;
     display: grid;
+    padding: 1rem;
     grid-template-columns: repeat(3,1fr);
     grid-template-rows: repeat(2,1fr);
     width: 80rem;
-    height: 80%;
     position: relative;
     overflow: hidden;
     background-color: rgba(255, 255, 255, 60%);
     border-radius: 1.5rem;
-    margin:auto;
-    margin-right: 20px;
-    margin-left: 10px;
     box-shadow: 0 0 1rem 0.2rem rgb(0 0 0 /10%);
     text-align: center;
 }
-.container .box .card{
+.card{
     display: flex;
     flex-direction: column;
     position:relative;
@@ -73,13 +96,13 @@ html::before{
     text-decoration: none;
 }
 
-.container .box .card:hover{
+.card:hover{
     background-color: rgba(255, 255, 255, 50%);
     box-shadow:0 0 1rem 0.5rem rgb(0 0 0 /20%);
     transition: all 0.3s ease;
 }
 
-.container .box .card .pic{
+.card .pic{
     position: relative;
     width: 100%;
     height: 61%;
@@ -96,7 +119,7 @@ html::before{
     background-image: url(../img/0.jpg);
 }
 
-.container .box .card .text{
+.card .text{
     display: flex;
     position: relative;
     width: 100%;
@@ -108,22 +131,17 @@ html::before{
 }
 
 /*左侧个人信息栏*/
-.container .left{
-    position: relative;
-    width: 300px;
-    height: 80%;
+ .sidebar{
+    width: var(--sidebar-width);
+    flex-shrink: 0;
     border-top-right-radius: 1.5rem;
     border-bottom-right-radius: 1.5rem;
     box-shadow:0 0 1rem 0.2rem rgb(0 0 0 /10%);
-    background-color: rgba(255, 255, 255, 30%); ;
-    margin: auto;
-    padding: auto;
-    margin-left: 0px;
-    margin-right: 10px ;
-    text-align: center;
+    background-color: rgba(255, 255, 255, 30%);
+    padding: 2rem;
 }
 
-.container .left .avatar{
+.sidebar .avatar{
     display: flex;
     position:relative;
     width: 100%;
@@ -132,7 +150,7 @@ html::before{
     background-color: rgba(255, 255, 255, 30%);
 }
 
-.container .left .avatar img{
+.sidebar .avatar img{
     display: flex;
     position: relative;
     margin: auto;
@@ -142,7 +160,7 @@ html::before{
     object-fit: cover;
 }
 
-.container .left .avatar img:hover{
+.sidebar .avatar img:hover{
     display: flex;
     position: relative;
     margin: auto;
@@ -153,7 +171,7 @@ html::before{
     box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.3);
 }
 
-.container .left .intro{
+.sidebar .intro{
     display: flex;
     position: relative;
     width: 100%;
@@ -164,7 +182,7 @@ html::before{
     
 }
 
-.container .left .intro h1{
+.sidebar .intro h1{
     position: relative;
     font-size: 25px;
     margin-top: 10px;
@@ -172,7 +190,7 @@ html::before{
     color: #0087a8;
     text-shadow: 0 3px 5px rgba(0, 127, 211, 0.4);
 }
-.container .left .intro p1{
+.sidebar .intro p1{
     position: relative;
     margin-top: 5px;
     font-size: 15px;
@@ -181,7 +199,7 @@ html::before{
 }
 
 
-.container .left .about{
+.sidebar .about{
     display: flex;
     position: relative;
     width: 100%;
@@ -193,7 +211,7 @@ html::before{
 
 
 
-.container .left .about a{
+.sidebar .about a{
     display: flex;
     position: relative;
     width: 100%;
@@ -205,7 +223,7 @@ html::before{
     text-decoration: none;
 }
 
-.container .left .about .about_nav{
+.sidebar .about .about_nav{
     display: flex;
     position: relative;
     width: 100%;
@@ -216,7 +234,7 @@ html::before{
     gap: 20px;
 }
 
-.container .left .about .about_nav a{
+.sidebar .about .about_nav a{
     display: flex;
     position: relative;
     width: 40px;
@@ -228,17 +246,14 @@ html::before{
     background:linear-gradient(120deg, #cef5ff 0%, #ffe0d3) ;
     box-shadow:0 0 5px 1px #d0d0d0;
 }
-
-.container .left .about .about_nav a:hover{
+.sidebar .about .about_nav a:hover{
     width: 42px;
     height: 42px;
     background:linear-gradient(120deg, #daf8ff 0%, #ffeae1 100%) ;
 
 }
 
-
-
-.container .left .about .about_nav a .bilibili_icon{
+.sidebar .about .about_nav a .bilibili_icon{
     display: flex;
     position: relative;
     margin: auto;
@@ -248,7 +263,7 @@ html::before{
     background-image: url(../img/bilibili_icon.png);
 }
 
-.container .left .about .about_nav a .github_icon{
+.sidebar .about .about_nav a .github_icon{
     display: flex;
     position: relative;
     margin: auto;
@@ -256,4 +271,8 @@ html::before{
     height: 50%;
     background-size: cover;
     background-image: url(../img/github_icon.png);
+}
+
+.app-footer {
+    
 }
