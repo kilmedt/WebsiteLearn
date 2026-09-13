@@ -1,0 +1,716 @@
+/* ==========================================================================
+   Kilmedt's Website — single shared stylesheet
+   --------------------------------------------------------------------------
+   1. Design tokens          6. Tile grid
+   2. Reset & base           7. Subpage panel
+   3. Layout shell           8. Responsive
+   4. Header                 9. Motion, contrast & print fallbacks
+   5. Profile sidebar
+   ========================================================================== */
+
+/* 1. Design tokens ========================================================= */
+
+:root {
+    color-scheme: light;
+
+    /* Typography — includes CJK faces so Chinese text stops falling back to a
+       serif default on Windows/Android. */
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+        "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+
+    /* Palette. Every foreground colour below clears WCAG AA (>= 4.5:1) against
+       white, which is the lightest surface the glass panels can produce. */
+    --c-ink: #16333d;        /* 13.3:1 — body copy, tile titles */
+    --c-ink-soft: #47636d;   /* 6.4:1  — secondary copy */
+    --c-accent: #006b87;     /* 6.1:1  — links, name, page headings */
+    --c-warm: #a8471f;       /* 5.9:1  — tagline, chips */
+    --c-line: rgba(22, 51, 61, 0.14);
+    --c-line-soft: rgba(22, 51, 61, 0.08);
+
+    /* Translucent glass surfaces */
+    --surface-1: rgba(255, 255, 255, 0.34);
+    --surface-2: rgba(255, 255, 255, 0.52);
+    --surface-3: rgba(255, 255, 255, 0.72);
+    --surface-solid: rgba(255, 255, 255, 0.9);
+
+    /* Page wash */
+    --bg-a: #cef5ff;
+    --bg-b: #ffe0d3;
+    --bg-base: #f4fbfd;
+
+    /* Shape */
+    --r-lg: 1.6rem;
+    --r-md: 1.2rem;
+    --r-pill: 999px;
+
+    /* Elevation */
+    --sh-1: 0 0.2rem 1.2rem rgba(22, 51, 61, 0.07);
+    --sh-2: 0 0.6rem 2.4rem rgba(22, 51, 61, 0.13);
+    --sh-3: 0 1.2rem 3.2rem rgba(22, 51, 61, 0.18);
+
+    /* Spacing & metrics */
+    --gap: 2rem;
+    --gutter: 2.4rem;
+    --header-h: 6.4rem;
+    --sidebar-w: 26rem;
+    --shell-max: 1440px;
+
+    /* Motion */
+    --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+    --dur: 0.28s;
+}
+
+/* 2. Reset & base ========================================================== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    /* 62.5% keeps the author-friendly 1rem = 10px scale while still honouring
+       the reader's browser font-size setting, unlike a hard `font-size: 10px`. */
+    font-size: 62.5%;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+        "header"
+        "body"
+        "footer";
+    font-family: var(--font-sans);
+    font-size: 1.5rem;
+    line-height: 1.6;
+    color: var(--c-ink);
+    background-color: var(--bg-base);
+}
+
+/* Fixed pastel wash behind everything, replacing the old html::before layer. */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(58rem 44rem at 10% -8%, rgba(255, 255, 255, 0.8), transparent 70%),
+        radial-gradient(52rem 40rem at 105% 108%, rgba(255, 255, 255, 0.55), transparent 72%),
+        linear-gradient(120deg, var(--bg-a) 0%, var(--bg-b) 100%);
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+:where(a, button, [tabindex]):focus-visible {
+    outline: 0.3rem solid var(--c-accent);
+    outline-offset: 0.3rem;
+}
+
+/* 3. Layout shell ========================================================== */
+
+.app-header {
+    grid-area: header;
+}
+
+.app-body {
+    grid-area: body;
+}
+
+.app-footer {
+    grid-area: footer;
+}
+
+.app-body {
+    display: flex;
+    gap: var(--gap);
+    width: 100%;
+    max-width: var(--shell-max);
+    margin-inline: auto;
+    padding: var(--gutter);
+    /* Lets the tile grid shrink instead of forcing page-level overflow. */
+    min-height: 0;
+}
+
+/* 4. Header ================================================================ */
+
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap);
+    height: var(--header-h);
+    padding: 0 var(--gutter);
+    background: var(--surface-solid);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    backdrop-filter: blur(12px) saturate(1.4);
+    border-bottom: 0.1rem solid var(--c-line-soft);
+    border-radius: 0 0 var(--r-lg) var(--r-lg);
+    box-shadow: var(--sh-1);
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.9rem;
+    font-size: 1.6rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    color: var(--c-ink);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.brand__mark {
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 0.35rem;
+    background: linear-gradient(135deg, var(--c-accent), var(--c-warm));
+    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.7);
+}
+
+.brand__suffix {
+    color: var(--c-ink-soft);
+    font-weight: 500;
+}
+
+.app-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.app-nav a {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.7rem 1.3rem;
+    border-radius: var(--r-pill);
+    font-size: 1.4rem;
+    font-weight: 550;
+    color: var(--c-ink-soft);
+    text-decoration: none;
+    transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.app-nav a:hover {
+    background: var(--surface-2);
+    color: var(--c-ink);
+}
+
+.app-nav a[aria-current="page"] {
+    background: var(--surface-3);
+    color: var(--c-accent);
+    box-shadow: inset 0 0 0 0.1rem var(--c-line-soft);
+}
+
+/* 5. Profile sidebar ======================================================= */
+
+.profile {
+    flex: 0 0 var(--sidebar-w);
+    width: var(--sidebar-w);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 2.6rem 2rem;
+    text-align: center;
+    background: var(--surface-2);
+    border: 0.1rem solid rgba(255, 255, 255, 0.6);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-1);
+    -webkit-backdrop-filter: blur(10px) saturate(1.3);
+    backdrop-filter: blur(10px) saturate(1.3);
+}
+
+.profile__avatar {
+    display: block;
+    width: 12.8rem;
+    height: 12.8rem;
+    margin: 0.4rem auto 0;
+}
+
+.profile__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--r-pill);
+    border: 0.3rem solid rgba(255, 255, 255, 0.85);
+    box-shadow: var(--sh-1);
+    /* transform instead of animating width/height: no layout reflow on hover. */
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.profile__avatar img:hover {
+    transform: scale(1.045);
+    box-shadow: var(--sh-2);
+}
+
+.profile__intro {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1.6rem;
+}
+
+.profile__name {
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
+    color: var(--c-accent);
+}
+
+.profile__tagline {
+    font-size: 1.4rem;
+    font-weight: 550;
+    color: var(--c-warm);
+}
+
+.profile__email {
+    font-size: 1.3rem;
+    color: var(--c-ink-soft);
+    overflow-wrap: anywhere;
+}
+
+.profile__email a {
+    color: inherit;
+    text-decoration-color: var(--c-line);
+    text-underline-offset: 0.3rem;
+}
+
+.profile__email a:hover {
+    color: var(--c-accent);
+}
+
+.profile__links {
+    display: flex;
+    justify-content: center;
+    gap: 1.6rem;
+    /* Pin the social row to the bottom so a stretched panel stays balanced. */
+    margin-top: auto;
+    padding-top: 2.2rem;
+    border-top: 0.1rem solid var(--c-line-soft);
+}
+
+.profile__links a {
+    display: grid;
+    place-items: center;
+    width: 4.4rem;
+    height: 4.4rem;
+    border-radius: var(--r-pill);
+    background: linear-gradient(120deg, var(--bg-a), var(--bg-b));
+    box-shadow: var(--sh-1);
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.profile__links a:hover {
+    transform: translateY(-0.2rem) scale(1.05);
+    box-shadow: var(--sh-2);
+}
+
+.profile__links img {
+    width: 2.2rem;
+    height: 2.2rem;
+}
+
+/* 6. Tile grid ============================================================= */
+
+.tiles {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: grid;
+    gap: var(--gap);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* Fills the viewport like the original dashboard, but 21rem is a hard floor
+       so short screens scroll instead of squashing or clipping the tiles. */
+    grid-auto-rows: minmax(21rem, 1fr);
+}
+
+.tile {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    color: inherit;
+    text-decoration: none;
+    background: var(--surface-1);
+    border: 0.1rem solid rgba(255, 255, 255, 0.6);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-1);
+    /* Transition lives on the base state so the hover-out animates too. */
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+        background-color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+a.tile:hover,
+a.tile:focus-visible {
+    transform: translateY(-0.4rem);
+    background: var(--surface-2);
+    border-color: rgba(255, 255, 255, 0.92);
+    box-shadow: var(--sh-3);
+}
+
+.tile__cover {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 10rem;
+    overflow: hidden;
+    background: linear-gradient(150deg, #d5f2ff, #ffe4d7);
+}
+
+.tile__cover img {
+    /* Absolutely positioned so the square source art cannot dictate the tile
+       height through its intrinsic ratio; the grid row decides instead. */
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    transition: transform 0.5s var(--ease);
+}
+
+a.tile:hover .tile__cover img,
+a.tile:focus-visible .tile__cover img {
+    transform: scale(1.06);
+}
+
+/* Cover variants for tiles that have no artwork yet. */
+.tile__cover--blue {
+    background: linear-gradient(150deg, #d3f0ff, #bbe3f6);
+}
+
+.tile__cover--peach {
+    background: linear-gradient(150deg, #ffe7d9, #ffd0b8);
+}
+
+.tile__cover--mint {
+    background: linear-gradient(150deg, #d8f7ec, #bde9db);
+}
+
+.tile__cover--lilac {
+    background: linear-gradient(150deg, #e7e5ff, #d0ccfa);
+}
+
+.tile__icon {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+}
+
+.tile__icon svg {
+    width: 4.6rem;
+    height: 4.6rem;
+    color: rgba(22, 51, 61, 0.4);
+}
+
+.tile__body {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.2rem;
+    padding: 1.4rem 1.7rem;
+    background: rgba(255, 255, 255, 0.34);
+    border-top: 0.1rem solid var(--c-line-soft);
+}
+
+.tile__title {
+    font-size: 1.7rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    color: var(--c-ink);
+}
+
+.tile__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--c-accent);
+    white-space: nowrap;
+}
+
+.tile__arrow {
+    transition: transform var(--dur) var(--ease);
+}
+
+a.tile:hover .tile__arrow,
+a.tile:focus-visible .tile__arrow {
+    transform: translateX(0.35rem);
+}
+
+a.tile:hover .tile__title,
+a.tile:focus-visible .tile__title {
+    color: var(--c-accent);
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.9rem;
+    border-radius: var(--r-pill);
+    font-size: 1.2rem;
+    font-weight: 650;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    color: var(--c-warm);
+    background: rgba(255, 255, 255, 0.78);
+    border: 0.1rem solid rgba(168, 71, 31, 0.24);
+}
+
+/* Reserved slot — obviously intentional rather than an empty broken tile. */
+.tile--empty {
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    background: rgba(255, 255, 255, 0.16);
+    border-style: dashed;
+    border-color: rgba(22, 51, 61, 0.18);
+    box-shadow: none;
+    font-size: 1.3rem;
+    color: var(--c-ink-soft);
+}
+
+.tile__plus {
+    font-size: 2.6rem;
+    font-weight: 300;
+    line-height: 1;
+    color: rgba(22, 51, 61, 0.3);
+}
+
+/* 7. Subpage panel ========================================================= */
+
+.panel {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 3.2rem;
+    background: var(--surface-1);
+    border: 0.1rem solid rgba(255, 255, 255, 0.6);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-1);
+}
+
+.panel__title {
+    font-size: 2.6rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--c-accent);
+}
+
+.panel__lead {
+    max-width: 54ch;
+    margin-top: 1.2rem;
+    font-size: 1.5rem;
+    color: var(--c-ink-soft);
+}
+
+.panel__placeholder {
+    flex: 1 1 auto;
+    display: grid;
+    place-items: center;
+    min-height: 12rem;
+    margin: 2.4rem 0;
+    border: 0.2rem dashed rgba(22, 51, 61, 0.16);
+    border-radius: var(--r-lg);
+    font-size: 1.3rem;
+    color: var(--c-ink-soft);
+}
+
+.back-link {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-top: auto;
+    padding: 1.1rem 2rem;
+    border-radius: var(--r-pill);
+    font-size: 1.4rem;
+    font-weight: 650;
+    /* White on #006b87 = 6.1:1 */
+    color: #ffffff;
+    background: linear-gradient(120deg, var(--c-accent), #0a8fb0);
+    box-shadow: var(--sh-1);
+    text-decoration: none;
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.back-link:hover {
+    transform: translateY(-0.2rem);
+    box-shadow: var(--sh-2);
+}
+
+.app-footer {
+    padding: 1.4rem var(--gutter) 2.4rem;
+    text-align: center;
+    font-size: 1.3rem;
+    color: var(--c-ink-soft);
+}
+
+/* 8. Responsive ============================================================ */
+
+@media (max-width: 1180px) {
+    :root {
+        --sidebar-w: 23rem;
+    }
+}
+
+/* Two tile columns before the sidebar has to give up its own column. */
+@media (max-width: 1040px) {
+    .tiles {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Stack the shell: the profile becomes a full-width header card and tiles stop
+   trying to fill a viewport they no longer share with a sidebar. */
+@media (max-width: 880px) {
+    :root {
+        --gutter: 1.6rem;
+        --gap: 1.6rem;
+    }
+
+    .app-body {
+        flex-direction: column;
+    }
+
+    .profile {
+        flex: 0 0 auto;
+        width: 100%;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas:
+            "avatar intro"
+            "links  links";
+        align-items: center;
+        gap: 1.4rem 1.8rem;
+        padding: 1.8rem;
+        text-align: left;
+    }
+
+    .profile__avatar {
+        grid-area: avatar;
+        width: 7.2rem;
+        height: 7.2rem;
+        margin: 0;
+    }
+
+    .profile__intro {
+        grid-area: intro;
+        margin-top: 0;
+    }
+
+    .profile__name {
+        font-size: 2rem;
+    }
+
+    .profile__links {
+        grid-area: links;
+        justify-content: flex-start;
+        padding-top: 1.4rem;
+    }
+
+    .tiles {
+        grid-auto-rows: auto;
+    }
+
+    .tile__cover {
+        flex: 0 0 auto;
+        min-height: 0;
+        aspect-ratio: 16 / 9;
+    }
+
+    .panel {
+        padding: 2.4rem;
+    }
+
+    .back-link {
+        margin-top: 2.4rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .tiles {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .brand__suffix {
+        display: none;
+    }
+
+    .app-nav a {
+        padding: 0.6rem 1rem;
+        font-size: 1.3rem;
+    }
+
+    .profile__avatar {
+        width: 6.4rem;
+        height: 6.4rem;
+    }
+
+    .panel {
+        padding: 2rem;
+    }
+
+    .panel__title {
+        font-size: 2.2rem;
+    }
+}
+
+/* 9. Motion, contrast & print fallbacks ==================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Without blur the glass surfaces need to be more opaque to stay readable. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root {
+        --surface-1: rgba(255, 255, 255, 0.62);
+        --surface-2: rgba(255, 255, 255, 0.74);
+        --surface-3: rgba(255, 255, 255, 0.86);
+        --surface-solid: rgba(255, 255, 255, 0.97);
+    }
+}
+
+@media print {
+    body::before {
+        display: none;
+    }
+
+    .app-header {
+        position: static;
+    }
+
+    .tile,
+    .profile,
+    .panel {
+        box-shadow: none;
+        border-color: #cccccc;
+    }
+}
