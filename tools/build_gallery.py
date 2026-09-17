@@ -31,6 +31,7 @@ Pass --force to rebuild every derivative regardless.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import shutil
@@ -60,6 +61,10 @@ PAGE_DIR = os.path.join(ROOT, "gallery")
 PAGE_PATH = os.path.join(PAGE_DIR, "gallery.html")
 CSS_PATH = os.path.join(PAGE_DIR, "gallery.css")
 
+# Records when each image was first seen here, so "upload time" is a real
+# fact rather than a guess from file timestamps. See load_history().
+HISTORY_PATH = os.path.join(HERE, "gallery-history.json")
+
 THUMB_W = 640
 WEBP_Q = 82
 JPEG_Q = 85
@@ -68,9 +73,10 @@ EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 # Where the lightbox scrim / close button returns to.
 CLOSE_ANCHOR = "gallery"
 
-# The homepage Imgs tile cover mirrors the newest source image (by file mtime),
-# so dropping in a new work updates the cover with no manual step. Point this at
-# a file name to pin one image instead, e.g. COVER_OVERRIDE = "Anima_00182_.png".
+# The homepage Imgs tile cover mirrors the most recently uploaded image, so
+# dropping in a new work updates the cover with no manual step. Upload order is
+# tracked in tools/gallery-history.json; see load_history(). Point this at a
+# file name to pin one image instead, e.g. COVER_OVERRIDE = "Anima_00182_.png".
 COVER_OVERRIDE = None
 
 # Stable file name the cover is published under, so index.html never has to
@@ -116,7 +122,15 @@ def derivatives(src: str, slug: str, force: bool) -> dict:
     return meta
 
 
-def collect(force: bool) -> list[dict]:
+def collect(force: bool, history: dict[str, float]) -> list[dict]:
+    """Scan the source folders and record first-seen times into `history`.
+
+    On the very first run (empty history) existing images are seeded from their
+    file creation times, so a gallery that predates the history file keeps a
+    sensible order instead of every image looking like it arrived just now.
+    """
+    seeding = not history
+    now = datetime.now().timestamp()
     items: list[dict] = []
     for folder, is_ai in SOURCES:
         src_dir = os.path.join(SOURCE_ROOT, folder)
@@ -132,11 +146,22 @@ def collect(force: bool) -> list[dict]:
             # without their derivatives colliding.
             slug = f"{slugify(folder)}-{slugify(stem)}"
             meta = derivatives(path, slug, force)
+
+            key = f"{folder}/{name}"
+            if key in history:
+                added, origin = history[key], "recorded"
+            elif seeding:
+                added, origin = added_time(path), "seeded"
+            else:
+                added, origin = now, "new"
+            history[key] = added
+
             meta.update(
                 {
                     "name": stem,
                     "file": name,
-                    "added": added_time(path),
+                    "added": added,
+                    "origin": origin,
                     "mtime": os.path.getmtime(path),
                     "anchor": f"shot-{slug}",
                     "alt": f"{'AI 作品' if is_ai else '手工作品'}：{stem}",
@@ -153,21 +178,58 @@ def collect(force: bool) -> list[dict]:
 
 
 def added_time(path: str) -> float:
-    """When this file landed in the folder.
+    """Fallback "when did this land here", used only to seed the history.
 
     A file's mtime is when its *content* was made, which for a downloaded or
     exported image can be months earlier than the day you put it here — the
-    image editor's timestamp travels with the file. The creation time is what a
-    copy records, so that is what "just added" means. Windows and macOS expose
-    it as st_ctime / st_birthtime; on Linux st_ctime is the inode change time,
-    which a fresh copy also moves.
+    tool's timestamp travels with the file. The creation time is what a *copy*
+    records, so it is the closest thing to an upload time available from the
+    filesystem alone. It is only a fallback: moving a file preserves its
+    original creation time, which is why tools/gallery-history.json is the
+    real record once the script has seen an image at least once.
     """
     st = os.stat(path)
     return getattr(st, "st_birthtime", st.st_ctime)
 
 
+def load_history() -> dict[str, float]:
+    """Map "folder/file" -> epoch seconds when the script first saw it.
+
+    Written as readable ISO timestamps, so the file doubles as a record of the
+    upload order. Missing or unreadable history is not fatal: the next run
+    re-seeds from file creation times.
+    """
+    if not os.path.exists(HISTORY_PATH):
+        return {}
+    try:
+        with open(HISTORY_PATH, encoding="utf-8") as fh:
+            raw = json.load(fh)
+        return {k: datetime.fromisoformat(v).timestamp() for k, v in raw.items()}
+    except (ValueError, TypeError, OSError) as exc:
+        print(
+            f"!! 无法读取 {os.path.relpath(HISTORY_PATH, ROOT)}（{exc}）；"
+            "本次改用文件创建时间重新播种",
+            file=sys.stderr,
+        )
+        return {}
+
+
+def save_history(history: dict[str, float]) -> None:
+    payload = {
+        key: datetime.fromtimestamp(ts).isoformat(timespec="seconds")
+        for key, ts in sorted(history.items(), key=lambda kv: kv[1])
+    }
+    with open(HISTORY_PATH, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(payload, fh, ensure_ascii=False, indent=2)
+        fh.write("\n")
+
+
 def pick_cover(items: list[dict]) -> dict | None:
-    """The most recently added work; ties fall back to mtime, then gallery order."""
+    """The most recently uploaded work.
+
+    Ties — several images added in the same run — fall back to the file's own
+    timestamp and then to gallery order, so the result is always stable.
+    """
     if not items:
         return None
     if COVER_OVERRIDE:
@@ -411,17 +473,27 @@ def main() -> int:
     os.makedirs(DERIVED_DIR, exist_ok=True)
     os.makedirs(PAGE_DIR, exist_ok=True)
 
-    items = collect(args.force)
+    history = load_history()
+    items = collect(args.force, history)
     ai = sum(1 for it in items if it["is_ai"])
     print(f"{len(items)} image(s) total, {ai} with the AI badge")
     for it in items:
         thumb = os.path.join(DERIVED_DIR, f"{it['slug']}-thumb.webp")
         tag = "AI  " if it["is_ai"] else "    "
+        origin = {"new": "新的", "seeded": "补录", "recorded": "已记录"}[it["origin"]]
         print(
             f"   {tag}{it['folder']}/{it['name']:<20} "
             f"{it['src']['w']}x{it['src']['h']} {it['kb']:>6} KB original -> "
-            f"grid thumb {os.path.getsize(thumb)/1024:6.1f} KB"
+            f"grid thumb {os.path.getsize(thumb)/1024:6.1f} KB  "
+            f"[上传时间 {datetime.fromtimestamp(it['added']):%Y-%m-%d %H:%M} {origin}]"
         )
+
+    # Drop history entries for images that no longer exist.
+    for gone in sorted(set(history) - {f"{it['folder']}/{it['file']}" for it in items}):
+        del history[gone]
+        print(f"   forgot removed image: {gone}")
+    if items:
+        save_history(history)
 
     for name in sweep_orphans(items):
         print(f"   removed stale derivative: {name}")
@@ -443,8 +515,9 @@ def main() -> int:
         write_cover(cover)
         print(
             f"-> homepage cover = {cover['folder']}/{cover['file']}\n"
-            f"   added {datetime.fromtimestamp(cover['added']):%Y-%m-%d %H:%M}, "
-            f"file dated {datetime.fromtimestamp(cover['mtime']):%Y-%m-%d %H:%M}\n"
+            f"   上传时间 {datetime.fromtimestamp(cover['added']):%Y-%m-%d %H:%M}"
+            f"（{cover['origin']}），文件自身时间 "
+            f"{datetime.fromtimestamp(cover['mtime']):%Y-%m-%d %H:%M}\n"
             f"   published as img/gallery/{COVER_STEM}-thumb.webp|.jpg"
         )
     return 0

@@ -1,0 +1,4 @@
+# Windows 批处理文件必须使用 CRLF 换行，否则 cmd.exe 解析多行块时会报
+# 「此时不应有 do」这类错误。这里显式声明，避免依赖本机的 autocrlf 设置。
+*.cmd text eol=crlf
+*.bat text eol=crlf
