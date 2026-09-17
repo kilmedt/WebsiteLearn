@@ -1,0 +1,24 @@
+/* 本文件由 tools/build_gallery.py 生成，请勿手工修改。
+   每个大图的原图地址都写在 :target 规则里，因此只有真正打开某一张时
+   浏览器才会去下载那张原图。 */
+#shot-aiworks-anima-00177 {
+    --ar: 1.7777778;
+}
+
+#shot-aiworks-anima-00177:target .lightbox__img {
+    background-image: url("../images/AIworks/Anima_00177_.png");
+}
+#shot-aiworks-anima-00179 {
+    --ar: 1.7777778;
+}
+
+#shot-aiworks-anima-00179:target .lightbox__img {
+    background-image: url("../images/AIworks/Anima_00179_.png");
+}
+#shot-aiworks-anima-00182 {
+    --ar: 1.7777778;
+}
+
+#shot-aiworks-anima-00182:target .lightbox__img {
+    background-image: url("../images/AIworks/Anima_00182_.png");
+}

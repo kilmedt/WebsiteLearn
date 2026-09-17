@@ -9,11 +9,15 @@ Source of truth is the folder tree under images/:
 There is a single flat gallery — the folders decide the ordering and whether
 the AI badge is shown, but they are never rendered as visible categories.
 
-For every source image the script writes size-optimised derivatives into
-img/gallery/ and then regenerates gallery/gallery.html from them. It also
-publishes the newest image's thumbnail as img/gallery/cover-thumb.*, which is
-what the homepage Imgs tile shows — so the cover tracks your latest work with
-no manual step.
+For every source image the script writes a grid thumbnail into img/gallery/
+and then regenerates gallery/gallery.html from them. The enlarged lightbox view
+shows the original image file itself, so no large derivative is produced. The
+newest image's thumbnail is also published as img/gallery/cover-thumb.*, which
+is what the homepage Imgs tile shows — so the cover tracks your latest work
+with no manual step.
+
+Because the lightbox points at the originals, images/ must be deployed with the
+site. See .gitignore for the size trade-off and the lighter alternative.
 
 Run it again after dropping new images into either folder:
 
@@ -53,9 +57,9 @@ SOURCE_ROOT = os.path.join(ROOT, "images")
 DERIVED_DIR = os.path.join(ROOT, "img", "gallery")
 PAGE_DIR = os.path.join(ROOT, "gallery")
 PAGE_PATH = os.path.join(PAGE_DIR, "gallery.html")
+CSS_PATH = os.path.join(PAGE_DIR, "gallery.css")
 
 THUMB_W = 640
-FULL_W = 1600
 WEBP_Q = 82
 JPEG_Q = 85
 EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
@@ -79,33 +83,35 @@ def slugify(name: str) -> str:
 
 
 def derivatives(src: str, slug: str, force: bool) -> dict:
-    """Write <slug>-thumb/-full in webp+jpg and return their metadata."""
-    meta = {"slug": slug}
-    for label, width in (("thumb", THUMB_W), ("full", FULL_W)):
-        paths = {
-            "webp": os.path.join(DERIVED_DIR, f"{slug}-{label}.webp"),
-            "jpg": os.path.join(DERIVED_DIR, f"{slug}-{label}.jpg"),
-        }
-        if not force and all(
-            os.path.exists(p) and os.path.getmtime(p) >= os.path.getmtime(src)
-            for p in paths.values()
-        ):
-            with Image.open(paths["jpg"]) as im:
-                meta[label] = {"w": im.width, "h": im.height}
-            continue
+    """Write the grid thumbnail and return thumbnail + source metadata.
 
-        # convert("RGB") drops any embedded PNG text chunks, which for AI
-        # exports often carry the full generation prompt and seed.
-        with Image.open(src) as im:
-            im = im.convert("RGB")
-            if im.width > width:
-                height = max(1, round(im.height * width / im.width))
-                out = im.resize((width, height), Image.LANCZOS)
-            else:
-                out = im
-            meta[label] = {"w": out.width, "h": out.height}
-            out.save(paths["webp"], "WEBP", quality=WEBP_Q, method=6)
-            out.save(paths["jpg"], "JPEG", quality=JPEG_Q, optimize=True, progressive=True)
+    The enlarged view shows the original file itself, so no larger derivative
+    is produced — only the small grid thumbnail the page loads up front.
+    """
+    meta = {"slug": slug}
+    path = os.path.join(DERIVED_DIR, f"{slug}-thumb.webp")
+    path_jpg = os.path.join(DERIVED_DIR, f"{slug}-thumb.jpg")
+
+    # convert("RGB") drops any embedded PNG text chunks, which for AI exports
+    # often carry the full generation prompt and seed. The original keeps them,
+    # so those stay out of the page unless the visitor opens the file directly.
+    with Image.open(src) as im:
+        meta["src"] = {"w": im.width, "h": im.height}
+        im = im.convert("RGB")
+        if im.width > THUMB_W:
+            thumb = im.resize(
+                (THUMB_W, max(1, round(im.height * THUMB_W / im.width))), Image.LANCZOS
+            )
+        else:
+            thumb = im
+        meta["thumb"] = {"w": thumb.width, "h": thumb.height}
+        if force or not (
+            os.path.exists(path)
+            and os.path.exists(path_jpg)
+            and os.path.getmtime(path) >= os.path.getmtime(src)
+        ):
+            thumb.save(path, "WEBP", quality=WEBP_Q, method=6)
+            thumb.save(path_jpg, "JPEG", quality=JPEG_Q, optimize=True, progressive=True)
     return meta
 
 
@@ -193,19 +199,34 @@ LIGHTBOX = """\
         <div class="lightbox" id="{anchor}">
             <a class="lightbox__scrim" href="#{close}" aria-label="关闭"></a>
             <figure class="lightbox__figure">
-                <picture>
-                    <source srcset="../img/gallery/{slug}-full.webp" type="image/webp">
-                    <img src="../img/gallery/{slug}-full.jpg" alt="{alt}"
-                        width="{fw}" height="{fh}" decoding="async">
-                </picture>
+                <div class="lightbox__img" role="img" aria-label="{alt}"></div>
                 <figcaption class="lightbox__caption">
 {badge}                    <span class="lightbox__name">{name}</span>
-                    <a class="lightbox__action" href="../img/gallery/{slug}-full.jpg"
-                        target="_blank" rel="noopener noreferrer">在新标签打开</a>
+                    <a class="lightbox__action" href="../images/{folder}/{file}"
+                        target="_blank" rel="noopener noreferrer">打开原图</a>
                     <a class="lightbox__close" href="#{close}" aria-label="关闭大图">&times;</a>
                 </figcaption>
             </figure>
         </div>
+"""
+
+# Per-image rules. The background-image only matches while the lightbox is
+# :target, so an original is fetched when — and only when — it is opened.
+# An <img src> would pull every original on page load.
+LIGHTBOX_CSS = """\
+#{anchor} {{
+    --ar: {ar};
+}}
+
+#{anchor}:target .lightbox__img {{
+    background-image: url("../images/{folder}/{file}");
+}}
+"""
+
+CSS_HEADER = """\
+/* 本文件由 tools/build_gallery.py 生成，请勿手工修改。
+   每个大图的原图地址都写在 :target 规则里，因此只有真正打开某一张时
+   浏览器才会去下载那张原图。 */
 """
 
 GRID_OPEN = '            <ul class="gallery__grid">\n'
@@ -238,6 +259,7 @@ PAGE = """\
     <link rel="apple-touch-icon" sizes="180x180" href="../favicons/apple-touch-icon.png">
 
     <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="gallery.css">
 </head>
 
 <body class="page-gallery">
@@ -317,13 +339,24 @@ def render(items: list[dict]) -> str:
 
     lightboxes = "".join(
         LIGHTBOX.format(
-            anchor=it["anchor"], close=CLOSE_ANCHOR, slug=it["slug"],
+            anchor=it["anchor"], close=CLOSE_ANCHOR,
+            folder=it["folder"], file=it["file"],
             alt=escape(it["alt"]), name=escape(it["name"]),
-            fw=it["full"]["w"], fh=it["full"]["h"],
             badge=BADGE_CAPTION if it["is_ai"] else "",
         )
         for it in items
     )
+
+    rules = "".join(
+        LIGHTBOX_CSS.format(
+            anchor=it["anchor"],
+            ar=round(it["src"]["w"] / it["src"]["h"], 7),
+            folder=it["folder"], file=it["file"],
+        )
+        for it in items
+    )
+    with open(CSS_PATH, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(CSS_HEADER + (rules or "/* 暂无图片 */\n"))
 
     html = PAGE.format(
         close=CLOSE_ANCHOR, lead=lead, grid=grid,
@@ -333,6 +366,20 @@ def render(items: list[dict]) -> str:
     return html.replace(
         "<!DOCTYPE html>\n", "<!DOCTYPE html>\n" + GENERATED_BY + "\n", 1
     )
+
+
+def sweep_orphans(items: list[dict]) -> list[str]:
+    """Delete derivatives left behind by removed images or older layouts."""
+    keep = {f"{COVER_STEM}-thumb.webp", f"{COVER_STEM}-thumb.jpg"}
+    for it in items:
+        keep |= {f"{it['slug']}-thumb.webp", f"{it['slug']}-thumb.jpg"}
+    removed = []
+    for name in sorted(os.listdir(DERIVED_DIR)):
+        path = os.path.join(DERIVED_DIR, name)
+        if os.path.isfile(path) and name not in keep:
+            os.remove(path)
+            removed.append(name)
+    return removed
 
 
 def main() -> int:
@@ -348,13 +395,15 @@ def main() -> int:
     print(f"{len(items)} image(s) total, {ai} with the AI badge")
     for it in items:
         thumb = os.path.join(DERIVED_DIR, f"{it['slug']}-thumb.webp")
-        full = os.path.join(DERIVED_DIR, f"{it['slug']}-full.webp")
         tag = "AI  " if it["is_ai"] else "    "
         print(
-            f"   {tag}{it['folder']}/{it['name']:<20} source {it['kb']:>6} KB -> "
-            f"thumb {os.path.getsize(thumb)/1024:6.1f} KB, "
-            f"full {os.path.getsize(full)/1024:6.1f} KB"
+            f"   {tag}{it['folder']}/{it['name']:<20} "
+            f"{it['src']['w']}x{it['src']['h']} {it['kb']:>6} KB original -> "
+            f"grid thumb {os.path.getsize(thumb)/1024:6.1f} KB"
         )
+
+    for name in sweep_orphans(items):
+        print(f"   removed stale derivative: {name}")
 
     html = render(items)
     with open(PAGE_PATH, "w", encoding="utf-8", newline="\n") as fh:
