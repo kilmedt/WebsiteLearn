@@ -36,3 +36,10 @@
 #shot-aiworks-chatgpt-image-2026-4-23-23-22-31:target .lightbox__img {
     background-image: url("../images/AIworks/ChatGPT%20Image%202026%E5%B9%B44%E6%9C%8823%E6%97%A5%2023_22_31.png");
 }
+#shot-aiworks-wallpaper {
+    --ar: 1.5987903;
+}
+
+#shot-aiworks-wallpaper:target .lightbox__img {
+    background-image: url("../images/AIworks/wallpaper.png");
+}
