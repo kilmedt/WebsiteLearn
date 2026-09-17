@@ -10,7 +10,10 @@ There is a single flat gallery — the folders decide the ordering and whether
 the AI badge is shown, but they are never rendered as visible categories.
 
 For every source image the script writes size-optimised derivatives into
-img/gallery/ and then regenerates gallery/gallery.html from them.
+img/gallery/ and then regenerates gallery/gallery.html from them. It also
+publishes the newest image's thumbnail as img/gallery/cover-thumb.*, which is
+what the homepage Imgs tile shows — so the cover tracks your latest work with
+no manual step.
 
 Run it again after dropping new images into either folder:
 
@@ -26,8 +29,9 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import shutil
 import sys
-from datetime import date
+from datetime import date, datetime
 from html import escape
 
 try:
@@ -58,6 +62,15 @@ EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 
 # Where the lightbox scrim / close button returns to.
 CLOSE_ANCHOR = "gallery"
+
+# The homepage Imgs tile cover mirrors the newest source image (by file mtime),
+# so dropping in a new work updates the cover with no manual step. Point this at
+# a file name to pin one image instead, e.g. COVER_OVERRIDE = "Anima_00182_.png".
+COVER_OVERRIDE = None
+
+# Stable file name the cover is published under, so index.html never has to
+# reference a specific work (a hard-coded path is what broke img/0.jpg before).
+COVER_STEM = "cover"
 
 
 def slugify(name: str) -> str:
@@ -115,6 +128,8 @@ def collect(force: bool) -> list[dict]:
             meta.update(
                 {
                     "name": stem,
+                    "file": name,
+                    "mtime": os.path.getmtime(path),
                     "anchor": f"shot-{slug}",
                     "alt": f"{'AI 作品' if is_ai else '手工作品'}：{stem}",
                     "is_ai": is_ai,
@@ -124,6 +139,33 @@ def collect(force: bool) -> list[dict]:
             )
             items.append(meta)
     return items
+
+
+def pick_cover(items: list[dict]) -> dict | None:
+    """The newest work by source mtime; ties fall back to gallery order."""
+    if not items:
+        return None
+    if COVER_OVERRIDE:
+        for it in items:
+            if COVER_OVERRIDE in (it["file"], it["name"]):
+                return it
+        print(
+            f"!! COVER_OVERRIDE={COVER_OVERRIDE!r} matched no image; "
+            "falling back to the newest one",
+            file=sys.stderr,
+        )
+    return max(enumerate(items), key=lambda pair: (pair[1]["mtime"], pair[0]))[1]
+
+
+def write_cover(item: dict) -> list[str]:
+    """Publish the chosen work's thumbnail under a stable cover file name."""
+    written = []
+    for fmt in ("webp", "jpg"):
+        src = os.path.join(DERIVED_DIR, f"{item['slug']}-thumb.{fmt}")
+        dst = os.path.join(DERIVED_DIR, f"{COVER_STEM}-thumb.{fmt}")
+        shutil.copyfile(src, dst)
+        written.append(dst)
+    return written
 
 
 SHOT = """\
@@ -318,6 +360,22 @@ def main() -> int:
     with open(PAGE_PATH, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(html)
     print(f"\n-> {os.path.relpath(PAGE_PATH, ROOT)}")
+
+    cover = pick_cover(items)
+    if cover is None:
+        print(
+            "!! no images found, so img/gallery/cover-thumb.* was not written.\n"
+            "   index.html points at that file, so the Imgs tile will show a\n"
+            "   broken cover until at least one image exists.",
+            file=sys.stderr,
+        )
+    else:
+        write_cover(cover)
+        print(
+            f"-> homepage cover = {cover['folder']}/{cover['file']} "
+            f"(newest, {datetime.fromtimestamp(cover['mtime']):%Y-%m-%d %H:%M})\n"
+            f"   published as img/gallery/{COVER_STEM}-thumb.webp|.jpg"
+        )
     return 0
 
 

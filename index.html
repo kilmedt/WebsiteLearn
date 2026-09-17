@@ -83,15 +83,12 @@
             </a>
 
             <a class="tile" href="gallery/gallery.html">
-                <div class="tile__cover tile__cover--mint">
-                    <div class="tile__icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="4" width="18" height="16" rx="2.5" />
-                            <circle cx="8.5" cy="9.5" r="1.5" />
-                            <path d="m21 15.5-4.5-4.5L7 20.5" />
-                        </svg>
-                    </div>
+                <!-- 封面由 tools/build_gallery.py 维护，始终指向画廊里最新的一张 -->
+                <div class="tile__cover">
+                    <picture>
+                        <source srcset="img/gallery/cover-thumb.webp" type="image/webp">
+                        <img src="img/gallery/cover-thumb.jpg" alt="" loading="lazy" decoding="async">
+                    </picture>
                 </div>
                 <div class="tile__body">
                     <h2 class="tile__title">Imgs</h2>

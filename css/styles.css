@@ -389,11 +389,7 @@ a.tile:focus-visible .tile__cover img {
     transform: scale(1.06);
 }
 
-/* Cover variants for tiles that have no artwork yet. */
-.tile__cover--mint {
-    background: linear-gradient(150deg, #d8f7ec, #bde9db);
-}
-
+/* Cover variant for tiles that have no artwork yet. */
 .tile__cover--lilac {
     background: linear-gradient(150deg, #e7e5ff, #d0ccfa);
 }
