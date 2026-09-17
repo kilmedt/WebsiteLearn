@@ -706,11 +706,12 @@ a.tile:focus-visible .tile__title {
     display: flex;
     flex-direction: column;
     /* --ar is the image aspect ratio, set per lightbox in gallery/gallery.css.
+       It must be read with var(--ar, fallback) rather than declared here: a
+       declaration on this element would shadow the inherited per-image value.
        Sizing by ratio keeps the figure flush against the image instead of
        letterboxing it, and works the same for portrait and landscape. */
-    --ar: 1.7777778;
-    width: min(100%, calc((100vh - 14rem) * var(--ar)));
-    width: min(100%, calc((100dvh - 14rem) * var(--ar)));
+    width: min(100%, calc((100vh - 14rem) * var(--ar, 1.7777778)));
+    width: min(100%, calc((100dvh - 14rem) * var(--ar, 1.7777778)));
     max-height: 100%;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.95);
@@ -724,7 +725,7 @@ a.tile:focus-visible .tile__title {
    gallery/gallery.css supplies the url() and --ar per image. */
 .lightbox__img {
     width: 100%;
-    aspect-ratio: var(--ar);
+    aspect-ratio: var(--ar, 1.7777778);
     background-color: #0e262e;
     background-position: center;
     background-repeat: no-repeat;
@@ -912,7 +913,7 @@ a.tile:focus-visible .tile__title {
     }
 
     .lightbox__figure {
-        width: min(100%, calc((100dvh - 16rem) * var(--ar)));
+        width: min(100%, calc((100dvh - 16rem) * var(--ar, 1.7777778)));
     }
 }
 

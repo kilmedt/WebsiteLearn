@@ -37,6 +37,7 @@ import shutil
 import sys
 from datetime import date, datetime
 from html import escape
+from urllib.parse import quote
 
 try:
     from PIL import Image
@@ -135,9 +136,13 @@ def collect(force: bool) -> list[dict]:
                 {
                     "name": stem,
                     "file": name,
+                    "added": added_time(path),
                     "mtime": os.path.getmtime(path),
                     "anchor": f"shot-{slug}",
                     "alt": f"{'AI 作品' if is_ai else '手工作品'}：{stem}",
+                    # Source names may hold spaces or CJK; percent-encode before
+                    # putting them in a CSS url() or an href.
+                    "url": quote(f"../images/{folder}/{name}", safe="/"),
                     "is_ai": is_ai,
                     "folder": folder,
                     "kb": round(os.path.getsize(path) / 1024),
@@ -147,8 +152,22 @@ def collect(force: bool) -> list[dict]:
     return items
 
 
+def added_time(path: str) -> float:
+    """When this file landed in the folder.
+
+    A file's mtime is when its *content* was made, which for a downloaded or
+    exported image can be months earlier than the day you put it here — the
+    image editor's timestamp travels with the file. The creation time is what a
+    copy records, so that is what "just added" means. Windows and macOS expose
+    it as st_ctime / st_birthtime; on Linux st_ctime is the inode change time,
+    which a fresh copy also moves.
+    """
+    st = os.stat(path)
+    return getattr(st, "st_birthtime", st.st_ctime)
+
+
 def pick_cover(items: list[dict]) -> dict | None:
-    """The newest work by source mtime; ties fall back to gallery order."""
+    """The most recently added work; ties fall back to mtime, then gallery order."""
     if not items:
         return None
     if COVER_OVERRIDE:
@@ -160,7 +179,10 @@ def pick_cover(items: list[dict]) -> dict | None:
             "falling back to the newest one",
             file=sys.stderr,
         )
-    return max(enumerate(items), key=lambda pair: (pair[1]["mtime"], pair[0]))[1]
+    return max(
+        enumerate(items),
+        key=lambda pair: (pair[1]["added"], pair[1]["mtime"], pair[0]),
+    )[1]
 
 
 def write_cover(item: dict) -> list[str]:
@@ -202,7 +224,7 @@ LIGHTBOX = """\
                 <div class="lightbox__img" role="img" aria-label="{alt}"></div>
                 <figcaption class="lightbox__caption">
 {badge}                    <span class="lightbox__name">{name}</span>
-                    <a class="lightbox__action" href="../images/{folder}/{file}"
+                    <a class="lightbox__action" href="{url}"
                         target="_blank" rel="noopener noreferrer">打开原图</a>
                     <a class="lightbox__close" href="#{close}" aria-label="关闭大图">&times;</a>
                 </figcaption>
@@ -219,7 +241,7 @@ LIGHTBOX_CSS = """\
 }}
 
 #{anchor}:target .lightbox__img {{
-    background-image: url("../images/{folder}/{file}");
+    background-image: url("{url}");
 }}
 """
 
@@ -339,8 +361,7 @@ def render(items: list[dict]) -> str:
 
     lightboxes = "".join(
         LIGHTBOX.format(
-            anchor=it["anchor"], close=CLOSE_ANCHOR,
-            folder=it["folder"], file=it["file"],
+            anchor=it["anchor"], close=CLOSE_ANCHOR, url=it["url"],
             alt=escape(it["alt"]), name=escape(it["name"]),
             badge=BADGE_CAPTION if it["is_ai"] else "",
         )
@@ -351,7 +372,7 @@ def render(items: list[dict]) -> str:
         LIGHTBOX_CSS.format(
             anchor=it["anchor"],
             ar=round(it["src"]["w"] / it["src"]["h"], 7),
-            folder=it["folder"], file=it["file"],
+            url=it["url"],
         )
         for it in items
     )
@@ -421,8 +442,9 @@ def main() -> int:
     else:
         write_cover(cover)
         print(
-            f"-> homepage cover = {cover['folder']}/{cover['file']} "
-            f"(newest, {datetime.fromtimestamp(cover['mtime']):%Y-%m-%d %H:%M})\n"
+            f"-> homepage cover = {cover['folder']}/{cover['file']}\n"
+            f"   added {datetime.fromtimestamp(cover['added']):%Y-%m-%d %H:%M}, "
+            f"file dated {datetime.fromtimestamp(cover['mtime']):%Y-%m-%d %H:%M}\n"
             f"   published as img/gallery/{COVER_STEM}-thumb.webp|.jpg"
         )
     return 0
