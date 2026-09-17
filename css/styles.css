@@ -390,14 +390,6 @@ a.tile:focus-visible .tile__cover img {
 }
 
 /* Cover variants for tiles that have no artwork yet. */
-.tile__cover--blue {
-    background: linear-gradient(150deg, #d3f0ff, #bbe3f6);
-}
-
-.tile__cover--peach {
-    background: linear-gradient(150deg, #ffe7d9, #ffd0b8);
-}
-
 .tile__cover--mint {
     background: linear-gradient(150deg, #d8f7ec, #bde9db);
 }
@@ -547,7 +539,7 @@ a.tile:focus-visible .tile__title {
     font-weight: 650;
     /* White on #006b87 = 6.1:1 */
     color: #ffffff;
-    background: linear-gradient(120deg, var(--c-accent), #0a8fb0);
+    background: linear-gradient(120deg, #00546b, var(--c-accent));
     box-shadow: var(--sh-1);
     text-decoration: none;
     transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
@@ -565,7 +557,234 @@ a.tile:focus-visible .tile__title {
     color: var(--c-ink-soft);
 }
 
-/* 8. Responsive ============================================================ */
+/* 8. Gallery ("Imgs" section) ============================================= */
+
+/* Close-anchor target for the lightbox; clears the sticky header. */
+.gallery {
+    scroll-margin-top: calc(var(--header-h) + 1.6rem);
+}
+
+.gallery__grid {
+    display: grid;
+    gap: 1.6rem;
+    margin-top: 1.8rem;
+    /* 3 columns on desktop, 2 on tablet, 1 on phones — no breakpoints needed.
+       min() lets the track shrink below 26rem on very narrow screens instead
+       of forcing a 260px floor that would overflow the panel. */
+    grid-template-columns: repeat(auto-fill, minmax(min(26rem, 100%), 1fr));
+    align-items: start;
+    list-style: none;
+}
+
+.gallery__empty {
+    margin-top: 1.4rem;
+    padding: 2.4rem;
+    border: 0.2rem dashed rgba(22, 51, 61, 0.16);
+    border-radius: var(--r-lg);
+    font-size: 1.3rem;
+    color: var(--c-ink-soft);
+}
+
+.gallery__empty code {
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 1.2rem;
+    background: rgba(22, 51, 61, 0.07);
+    overflow-wrap: anywhere;
+}
+
+.shot__link {
+    display: flex;
+    flex-direction: column;
+    color: inherit;
+    text-decoration: none;
+}
+
+.shot__frame {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border-radius: var(--r-md);
+    background: rgba(255, 255, 255, 0.45);
+    box-shadow: var(--sh-1);
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.shot__frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+    transition: transform 0.5s var(--ease);
+}
+
+.shot__link:hover .shot__frame,
+.shot__link:focus-visible .shot__frame {
+    transform: translateY(-0.3rem);
+    box-shadow: var(--sh-2);
+}
+
+.shot__link:hover .shot__frame img,
+.shot__link:focus-visible .shot__frame img {
+    transform: scale(1.035);
+}
+
+.shot__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 0.2rem 0;
+}
+
+.shot__name {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--c-ink);
+    overflow-wrap: anywhere;
+}
+
+.shot__zoom {
+    font-size: 1.2rem;
+    color: var(--c-ink-soft);
+    white-space: nowrap;
+    transition: color var(--dur) var(--ease);
+}
+
+.shot__link:hover .shot__zoom,
+.shot__link:focus-visible .shot__zoom {
+    color: var(--c-accent);
+}
+
+/* "AI" provenance tag. White on #006b87 = 6.1:1. */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.8rem;
+    border-radius: var(--r-pill);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+.badge--ai {
+    color: #ffffff;
+    /* Both stops keep white text at >= 6:1; #0a8fb0 would only reach 3.8:1. */
+    background: linear-gradient(120deg, #00546b, var(--c-accent));
+    box-shadow: 0 0.2rem 0.8rem rgba(0, 90, 115, 0.32);
+}
+
+.shot__frame .badge {
+    position: absolute;
+    top: 0.9rem;
+    left: 0.9rem;
+    z-index: 1;
+}
+
+/* JS-free lightbox: the thumbnail link targets the overlay and :target shows
+   it. Clicking the scrim or the close link returns to the group anchor. */
+.lightbox {
+    display: none;
+}
+
+.lightbox:target {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    padding: var(--gutter);
+}
+
+.lightbox__scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(14, 38, 46, 0.72);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+
+.lightbox__figure {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: var(--r-lg);
+    box-shadow: 0 2rem 5rem rgba(14, 38, 46, 0.4);
+}
+
+.lightbox__figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: calc(100vh - 14rem);
+    max-height: calc(100dvh - 14rem);
+    object-fit: contain;
+    background: #0e262e;
+}
+
+.lightbox__caption {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    padding: 1.2rem 1.4rem;
+}
+
+.lightbox__name {
+    margin-right: auto;
+    font-size: 1.4rem;
+    font-weight: 650;
+    color: var(--c-ink);
+    overflow-wrap: anywhere;
+}
+
+.lightbox__action {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--c-accent);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.lightbox__action:hover {
+    text-decoration: underline;
+}
+
+.lightbox__close {
+    display: grid;
+    place-items: center;
+    width: 3.2rem;
+    height: 3.2rem;
+    border-radius: var(--r-pill);
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--c-ink-soft);
+    text-decoration: none;
+    background: rgba(22, 51, 61, 0.07);
+    transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.lightbox__close:hover {
+    color: #ffffff;
+    background: var(--c-accent);
+}
+
+/* 9. Responsive ============================================================ */
+
+/* Long pages (the gallery) keep the profile card in view instead of
+   stretching it down the full height of the content. */
+@media (min-width: 881px) {
+    .page-gallery .profile {
+        align-self: start;
+        position: sticky;
+        top: calc(var(--header-h) + var(--gutter));
+        max-height: calc(100dvh - var(--header-h) - var(--gutter) * 2);
+    }
+}
 
 @media (max-width: 1180px) {
     :root {
@@ -673,9 +892,27 @@ a.tile:focus-visible .tile__title {
     .panel__title {
         font-size: 2.2rem;
     }
+
+    .lightbox:target {
+        padding: 1.2rem;
+    }
+
+    .lightbox__caption {
+        flex-wrap: wrap;
+        gap: 0.8rem;
+        padding: 1rem 1.2rem;
+    }
+
+    .lightbox__name {
+        font-size: 1.3rem;
+    }
+
+    .lightbox__figure img {
+        max-height: calc(100dvh - 16rem);
+    }
 }
 
-/* 9. Motion, contrast & print fallbacks ==================================== */
+/* 10. Motion, contrast & print fallbacks =================================== */
 
 @media (prefers-reduced-motion: reduce) {
     *,
